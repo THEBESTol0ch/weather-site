@@ -60,6 +60,7 @@ function showCard({ name, country, temp, condition, imgPath }) {
 
                                 <div class="card-weather">
                                     <div class="card-value">${temp}<sup>°c</sup></div>
+                                    <img class="card-img" src="${imgPath}" alt="Weather">
                                 </div>
 
                                 <div class="card-description">${condition}</div>
