@@ -40,6 +40,79 @@ const header = document.querySelector('.header');
 const form = document.querySelector('#form');
 const input = document.querySelector('#inputCity');
 
+const inputCity = document.getElementById('inputCity');
+const suggestions = document.getElementById('suggestions');
+const showWeatherBtn = document.getElementById('showWeatherBtn');
+const weatherForecast = document.getElementById('weatherForecast');
+
+inputCity.addEventListener('input', async () => {
+    const query = inputCity.value;
+    if (query.length < 2) {
+        suggestions.innerHTML = '';
+        return;
+    }
+
+    const url = `http://api.weatherapi.com/v1/search.json?key=${apiKey}&q=${query}`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        suggestions.innerHTML = '';
+        data.forEach(city => {
+            const li = document.createElement('li');
+            li.textContent = city.name;
+            li.addEventListener('click', () => {
+                inputCity.value = city.name;
+                suggestions.innerHTML = '';
+            });
+            suggestions.appendChild(li);
+        });
+    } catch (error) {
+        console.error('Error fetching data:', error);
+    }
+});
+
+showWeatherBtn.addEventListener('click', async () => {
+    const city = inputCity.value;
+    if (!city) {
+        alert('Please enter a city name');
+        return;
+    }
+
+    const url = `http://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${city}&days=7`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        displayForecast(data.forecast.forecastday);
+    } catch (error) {
+        console.error('Error fetching weather data:', error);
+    }
+});
+
+function displayForecast(forecastDays) {
+    weatherForecast.innerHTML = '';
+    forecastDays.forEach(day => {
+        const dayElement = document.createElement('div');
+        dayElement.classList.add('day');
+        
+        const date = new Date(day.date);
+        const options = { weekday: 'long', month: 'long', day: 'numeric' };
+        const dateStr = date.toLocaleDateString('ru-RU', options);
+        
+        dayElement.innerHTML = `
+            <h3>${dateStr}</h3>
+            <p>Температура: ${day.day.avgtemp_c}°C</p>
+            <p>Максимум: ${day.day.maxtemp_c}°C</p>
+            <p>Минимум: ${day.day.mintemp_c}°C</p>
+            <p>Условия: ${day.day.condition.text}</p>
+            <img src="${day.day.condition.icon}" alt="${day.day.condition.text}">
+        `;
+
+        weatherForecast.appendChild(dayElement);
+    });
+}
 function removeCard() {
 	const prevCard = document.querySelector('.card');
 	if (prevCard) prevCard.remove();

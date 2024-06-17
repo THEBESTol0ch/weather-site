@@ -13,9 +13,12 @@
         <h1 class="title">Прогноз погоды</h1>
         <form class="form" id="form">
             <input id="inputCity" class="input" type="text" placeholder="Введите название города">
-            <button class="btn">Показать</button>
+            <ul id="suggestions" class="suggestions"></ul>
+            <button class="btn" type="button" id="showWeatherBtn">Показать</button>
         </form>
     </header>
+
+    <section id="weatherForecast" class="weather-forecast"></section>
 
     <!-- <div class="card">
         <h2 class="card-city">London <span>GB</span></h2>

@@ -151,6 +151,26 @@ body {
 	line-height: 1.2;
 }
 
+.weather-forecast {
+    margin-top: 20px;
+}
+
+.weather-forecast .day {
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    padding: 10px;
+}
+
+.weather-forecast .day h3 {
+    margin: 0;
+    padding: 0;
+}
+
+.weather-forecast .day p {
+    margin: 5px 0;
+}
+
+
 /* .footer {
 	margin-top: auto;
 	width: 100%;
