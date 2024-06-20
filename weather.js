@@ -1,34 +1,3 @@
-// async function getWeather() {
-//     const response = await fetch('https://api.weatherapi.com/v1/current.json?key=615be588bf1a41cdb6a160615241306&q=Kazan');
-//     const data = await response.json();
-  
-//     temp = data.current.temp_c;
-//     wind = data.current.wind_kph;
-//     city = data.location.name;
-//     humidity = data.current.humidity;
-//     description = data.current.text; 
-
-//     console.log(temp, wind)
-//   }
-//   getWeather();
-
-
-//   const html = `
-//   <div class="container">
-//   <h1>Погода в ${city}</h1>
-//   <div class="weather-info">
-//       <p><strong>${temp}:</strong> <span id="temperature">20°C</span></p>
-//       <p><strong>${humidity}:</strong> <span id="humidity">50%</span></p>
-//       <p><strong>Описание:</strong> <span id="description">${description}</span></p>
-//   </div>
-// </div>`
-
-// return html;
-
-// const API_KEY = '4d0acb5c587ea09e45d027229439b325';
-// const API_KEY = '615be588bf1a41cdb6a160615241306';
-
-
 import conditions from './conditions.js';
 
 // console.log(conditions);
@@ -44,6 +13,26 @@ const inputCity = document.getElementById('inputCity');
 const suggestions = document.getElementById('suggestions');
 const showWeatherBtn = document.getElementById('showWeatherBtn');
 const weatherForecast = document.getElementById('weatherForecast');
+
+window.addEventListener('load', () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async position => {
+            const lat = position.coords.latitude.toFixed(2);
+            const lon = position.coords.longitude.toFixed(2);
+            const url = `http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${lat},${lon}&lang=ru`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                inputCity.value = data.location.name;
+            } catch (error) {
+                console.error('Error fetching location data:', error);
+            }
+        });
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+});
 
 inputCity.addEventListener('input', async () => {
     const query = inputCity.value;
@@ -61,6 +50,7 @@ inputCity.addEventListener('input', async () => {
         suggestions.innerHTML = '';
         data.forEach(city => {
             const li = document.createElement('li');
+            li.classList.add('suggestions');
             li.textContent = city.name;
             li.addEventListener('click', () => {
                 inputCity.value = city.name;
@@ -85,11 +75,20 @@ showWeatherBtn.addEventListener('click', async () => {
     try {
         const response = await fetch(url);
         const data = await response.json();
+        showForecast();
         displayForecast(data.forecast.forecastday);
     } catch (error) {
         console.error('Error fetching weather data:', error);
     }
 });
+
+const iconMap = {
+    "Sunny": "img/day/Sunny.png",
+    "Partly Сloudy": "img/day/Partly Сloudy.png",
+    "Cloudy": "img/day/Cloudy.png",
+    "Overcast": "img/day/Overcast.png",
+    "Light rain": "img/day/Light rain.png",
+};
 
 function displayForecast(forecastDays) {
     weatherForecast.innerHTML = '';
@@ -100,22 +99,73 @@ function displayForecast(forecastDays) {
         const date = new Date(day.date);
         const options = { weekday: 'long', month: 'long', day: 'numeric' };
         const dateStr = date.toLocaleDateString('ru-RU', options);
+
+        const condition = day.day.condition.text;
+        const iconUrl = iconMap[condition] || day.day.condition.icon;
         
-        dayElement.innerHTML = `
-            <h3>${dateStr}</h3>
-            <p>Температура: ${day.day.avgtemp_c}°C</p>
-            <p>Максимум: ${day.day.maxtemp_c}°C</p>
-            <p>Минимум: ${day.day.mintemp_c}°C</p>
-            <p>Условия: ${day.day.condition.text}</p>
-            <img src="${day.day.condition.icon}" alt="${day.day.condition.text}">
+        dayElement.innerHTML = `<div class="weather-forecast">
+            <h3 class="weather-degrees">${dateStr}</h3>
+            <div class="weather-forecast">
+            <div class="weather-forecast">Сред: ${day.day.avgtemp_c}<sup>°C</sup></div>
+            <div class="weather-degrees">Днём: ${day.day.maxtemp_c}<sup>°C</sup></div>
+            <div class="weather-forecast">Ночью: ${day.day.mintemp_c}<sup>°C</sup></div>
+            <img class="card-img" src="${iconUrl}" alt="Weather">
+            </div>
+            <div class="weather-forecast>Условия: ${day.day.condition.text}</>
+            </div>
         `;
 
         weatherForecast.appendChild(dayElement);
     });
 }
+async function showForecast(e) {
+    // Отменяем отправку формы
+    // e.preventDefault();
+
+    // Берем значение из инпута, обрезаем пробелы
+    let city = input.value.trim();
+
+    // Получаем данные с сервера
+    const data = await getWeather(city);
+
+    if (data.error) {
+        removeCard();
+        showError(data.error.message);
+    } else {
+        removeCard();
+
+        // console.log(data.current.condition.code);
+
+        const info = conditions.find(
+            (obj) => obj.code === data.current.condition.code
+        );
+        // console.log(info);
+        // console.log(info.languages[23]['day_text']);
+
+        const filePath = './img/' + (data.current.is_day ? 'day' : 'night') + '/';
+        const fileName = (data.current.is_day ? info.day : info.night) + '.png';
+        const imgPath = filePath + fileName;
+        // console.log('filePath', filePath + fileName);
+
+        const weatherData = {
+            name: data.location.name,
+            country: data.location.country,
+            temp: data.current.temp_c,
+            condition: data.current.is_day
+                ? info.languages[23]['day_text']
+                : info.languages[23]['night_text'],
+            imgPath,
+        };
+
+        showCard(weatherData);
+    }
+
+};
 function removeCard() {
 	const prevCard = document.querySelector('.card');
 	if (prevCard) prevCard.remove();
+    const prevSug = document.querySelector('.suggestion')
+    if (prevSug) prevSug.remove();
 }
 
 function showError(errorMessage) {
@@ -147,7 +197,7 @@ async function getWeather(city) {
 	const url = `http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${city}`;
 	const response = await fetch(url);
 	const data = await response.json();
-	console.log(data);
+	// console.log(data);
     return data;
 }
 
@@ -168,18 +218,18 @@ form.onsubmit = async function (e) {
 	} else {
 		removeCard();
 
-		console.log(data.current.condition.code);
+		// console.log(data.current.condition.code);
 
 		const info = conditions.find(
 			(obj) => obj.code === data.current.condition.code
 		);
-		console.log(info);
-		console.log(info.languages[23]['day_text']);
+		// console.log(info);
+		// console.log(info.languages[23]['day_text']);
 
         const filePath = './img/' + (data.current.is_day ? 'day' : 'night') + '/';
 		const fileName = (data.current.is_day ? info.day : info.night) + '.png';
         const imgPath = filePath + fileName;
-        console.log('filePath', filePath + fileName);
+        // console.log('filePath', filePath + fileName);
 
 		const weatherData = {
 			name: data.location.name,
@@ -190,7 +240,8 @@ form.onsubmit = async function (e) {
 				: info.languages[23]['night_text'],
 			imgPath,
 		};
-
+        
+        displayForecast(data.forecast.forecastday);
 		showCard(weatherData);
 	}
 
